@@ -2,9 +2,10 @@ __author__ = 'Oleg Butovich'
 __copyright__ = '(c) Oleg Butovich 2013-2017'
 __licence__ = 'MIT'
 
-
 import os
 from proxmoxer.backends.base_ssh import ProxmoxBaseSSHSession, BaseBackend
+import logging
+import sys
 
 try:
     import paramiko
@@ -13,6 +14,7 @@ except ImportError:
     sys.stderr.write("Chosen backend requires 'paramiko' module\n")
     sys.exit(1)
 
+logger = logging.getLogger(__name__)
 
 class ProxmoxParamikoSession(ProxmoxBaseSSHSession):
     def __init__(self, host,
@@ -55,6 +57,7 @@ class ProxmoxParamikoSession(ProxmoxBaseSSHSession):
         if self.sudo:
             cmd = 'sudo ' + cmd
         session = self.ssh_client.get_transport().open_session()
+        logger.info('PARAMIKO_SSH_COMMAND: %s', cmd)
         session.exec_command(cmd)
 
         # encoding output to utf-8, must see if this is the correct way to do this

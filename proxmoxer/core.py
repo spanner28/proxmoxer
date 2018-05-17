@@ -5,6 +5,9 @@ __licence__ = 'MIT'
 import importlib
 import posixpath
 import logging
+import sys
+from proxmoxer.backends.base_ssh import Response
+from proxmoxer.backends.ssh_paramiko import ProxmoxParamikoSession
 
 # Python 3 compatibility:
 try:
@@ -21,7 +24,6 @@ except NameError:  # py3
     basestring = (bytes, str)
 
 logger = logging.getLogger(__name__)
-
 
 class ProxmoxResourceBase(object):
 
@@ -80,6 +82,7 @@ class ProxmoxResource(ProxmoxResourceBase):
         elif 200 <= resp.status_code <= 299:
             return self._store["serializer"].loads(resp)
 
+
     def get(self, *args, **params):
         return self(args)._request("GET", params=params)
 
@@ -98,6 +101,26 @@ class ProxmoxResource(ProxmoxResourceBase):
     def set(self, *args, **data):
         return self.put(*args, **data)
 
+    def format_lvm(self, *args, **data):
+        print(self._store["session"])
+        if (isinstance(self._store["session"], ProxmoxParamikoSession)):
+            logger.info('COMMAND: %s' % isinstance(self._store["session"], ProxmoxParamikoSession))
+
+            url = self._store["base_url"]
+            method = 'none'
+            params = 'none'
+            resp = self._store["session"].format_lvm(**data)
+            logger.debug('Status code: %s, output: %s', resp.status_code, resp.content)
+
+            if resp.status_code >= 400:
+                raise ResourceException("{0} {1}: {2}".format(resp.status_code, httplib.responses[resp.status_code],
+                                                              resp.content))
+            elif 200 <= resp.status_code <= 299:
+                return self._store["serializer"].loads(resp)
+
+            return Response(resp.content, resp.status_code)
+
+        return Response('not ssh session', 500)
 
 class ProxmoxAPI(ProxmoxResourceBase):
     def __init__(self, host, backend='https', **kwargs):
